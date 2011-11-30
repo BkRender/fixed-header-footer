@@ -1,0 +1,13 @@
+#set ( $mobile_browser = $bkrender.capabilities.mobile_browser )
+#set ( $mobile_version = $bkrender.capabilities.device_os_version.split('\.').get(0) )
+#set ( $is_tablet = $bkrender.capabilities.is_tablet )
+
+#if ( $mobile_browser == 'WebKit/Android' )
+
+    #parse("../../android.tmpl")
+
+#elseif ( $mobile_browser == 'WebKit/iPhone' )
+
+    #parse("../../ios.tmpl")
+
+#end

@@ -1,0 +1,326 @@
+    <html>
+
+    <script type="application/javascript" src="bkrender-fixed-plugin/js/iscroll.js" id="#bkhead('bkFixedElementsJS')" />
+
+    <script type="text/javascript" id="#bkhead('bkFixedElementsInlineJS')">
+        
+        var scroll = {
+                
+            ios: {
+            
+                /*
+                 * Display modes.
+                 *
+                 * STANDARD: address bar is displayed.
+                 * FULLSCREEN: address bar is not displayed (like iPhone webapp mode).
+                 */
+                STANDARD: '_STANDARD_',
+                FULLSCREEN: '_FULLSCREEN_',
+
+                /*
+                 * Address bar height.
+                 */
+                ADRESS_BAR_HEIGHT: 60,
+
+                /*
+                 * Screen heights in standard mode.
+                 */
+                STANDARD_PORTRAIT_HEIGHT: 356,
+                STANDARD_LANDSCAPE_HEIGHT: 208,
+
+                /*
+                 * Screen heights in fullscreen mode.
+                 */
+                FULLSCREEN_PORTRAIT_HEIGHT: 356 + 60,
+                FULLSCREEN_LANDSCAPE_HEIGHT: 208 + 60,
+
+                /*
+                 * Flag that determine layout display mode.
+                 */
+                displayMode: '',
+
+                /*
+                 * Id of the interval that is used to check if user touched the top
+                 * the top of the screen in order to display the address bar.
+                 *
+                checkId: -1,
+
+                /*
+                 * iScroll framework object.
+                 */
+                iscroll: null,
+
+                /*
+                 * Elements of the layout.
+                 */
+                header: null,
+                body: null,
+                footer: null,
+
+                isScrollPresent: function() {
+                    return document.getElementById('scroller') != null;
+                },
+
+                /*
+                 * Is device an iPad ?
+                 * To know that, we use the 'is_tablet' WURFL property.
+                 * Returns true if device is a tablet, false otherwise.
+                 */
+                isTablet: function() {
+                    return '$is_tablet' == 'true';
+                },
+
+                /*
+                 * Is iPhone in WebApp mode ?
+                 * To know that, we use window.navigator.standalone read-only Boolean JavaScript property.
+                 * See: http://developer.apple.com/library/safari/#documentation/appleapplications/reference/SafariHTMLRef/Articles/MetaTags.html
+                 * Returns true if the device is in a webapp mode, false otherwise.
+                 */
+                isWebApp: function() {
+                    return window.navigator.standalone;
+                },
+
+                /*
+                 * Checks window inner height and compare it with iPhone height constants.
+                 * Returns true if address bar is displayed, false otherwise.
+                 */
+                isAddressBarDisplayed: function() {
+                    return (window.innerHeight == scroll.ios.STANDARD_PORTRAIT_HEIGHT) 
+                        || (window.innerHeight == scroll.ios.STANDARD_LANDSCAPE_HEIGHT);
+                },
+
+                /** 
+                 * A user can touch the top of his iPhone in order to display the address bar.
+                 * In that case, we need to adapt the layout, by raising the footer 
+                 * and decreasing the body height.
+                 */
+                detectURLBarTouchEvent: function () {
+                    if (scroll.ios.isAddressBarDisplayed()) {
+                        if (scroll.ios.isLayoutInFullScreenMode()) {
+                            scroll.ios.displayLayoutInStandardMode();
+                        }
+                    }
+                },
+
+                /** 
+                 * Set layout into a standard display.
+                 */
+                displayLayoutInStandardMode: function () {
+                    var footerHeight = scroll.ios.footer ? scroll.ios.footer.clientHeight : 0;
+                    var bodyStyle = footerHeight + "px";
+                    var footerStyle = "0px";
+                    scroll.ios.updateLayout(bodyStyle, footerStyle);
+                    scroll.ios.refreshScroll();
+                    scroll.ios.setLayoutModeFlagToStandard();
+                },
+
+                /** 
+                 * Set layout into fullscreen display.
+                 */
+                displayLayoutInFullScreenMode: function () {
+                    var footerHeight = scroll.ios.footer ? scroll.ios.footer.clientHeight : 0; 
+                    var bodyStyle = (footerHeight - scroll.ios.ADRESS_BAR_HEIGHT) + "px";
+                    var footerStyle = "-" + scroll.ios.ADRESS_BAR_HEIGHT +"px";
+                    scroll.ios.updateLayout(bodyStyle, footerStyle);
+                    scroll.ios.refreshScroll();
+                    scroll.ios.setLayoutModeFlagToFullScreen();
+                    setTimeout(function() { window.scrollTo(0, 1); }, 0);
+                },
+
+                /*
+                 * Update body and footer style.
+                 */
+                updateLayout: function (bodyStyle, footerStyle) {
+                    if (scroll.ios.body) {
+                        var headerHeight = scroll.ios.header ? scroll.ios.header.clientHeight : 0;
+                        scroll.ios.body.style.setProperty("top", headerHeight + "px");
+                        scroll.ios.body.style.setProperty("bottom", bodyStyle);
+                    }
+                    if (scroll.ios.footer) {
+                        scroll.ios.footer.style.setProperty("bottom", footerStyle);
+                    }
+                },
+
+                /*
+                 * Is layout in fullscreen mode ?
+                 */
+                isFullScreen: function() {
+                    return scroll.ios.fullScreen;
+                },
+
+                /*
+                 * Set display mode flad to STANDARD. 
+                 */
+                setLayoutModeFlagToStandard: function() {
+                    scroll.ios.displayMode = scroll.ios.STANDARD;
+                },
+
+                /*
+                 * Set display mode flag to FULLSCREEN. 
+                 */
+                setLayoutModeFlagToFullScreen: function() {
+                    scroll.ios.displayMode = scroll.ios.FULLSCREEN;
+                },
+
+                /*
+                 * Is display mode flag to FULLSCREEN ? 
+                 */
+                isLayoutInFullScreenMode: function() {
+                    return scroll.ios.displayMode === scroll.ios.FULLSCREEN;
+                },
+
+                /*
+                 * Is display mode flad to STANDARD ? 
+                 */
+                isLayoutInStandardMode: function() {
+                    return scroll.ios.displayMode === scroll.ios.STANDARD;
+                },
+
+                /*
+                 * Checks if the device is 'fullScreen mode' compatible.
+                 * iPad and iPhone in webapp mode are not 'fullScreen mode' compatible,
+                 * because :
+                 * 1) we can't hide address bar on an iPad.
+                 * 2) there is no address bar on iPhone in a webapp mode.
+                 */
+                isFullScreenModeCompatibleOnThisDevice: function() {
+                    return !(scroll.ios.isTablet() || scroll.ios.isWebApp());
+                },
+                
+                /*
+                 * Disable touch event on the document
+                 */
+                disableTouchEvent: function(e) {
+                    e.preventDefault();
+                },
+
+                /*
+                 * Initialization.
+                 * Launched when the page is loaded.
+                 */
+                init: function() {
+                    
+                    if (!scroll.ios.isScrollPresent()) {
+                        // section with id 'scroller' is not present
+                        // skipping initialization
+                        return;
+                    }
+
+                    // Initialize page layout components
+                    scroll.ios.header = document.getElementById('bk-header');
+                    scroll.ios.body = document.getElementById('bk-body');
+                    scroll.ios.footer = document.getElementById('bk-footer');
+                
+                    // Create iScroll object
+                    scroll.ios.iscroll = new iScroll('bk-body');
+
+                    if (scroll.ios.isFullScreenModeCompatibleOnThisDevice()) {
+                        scroll.ios.displayLayoutInFullScreenMode();
+                        scroll.ios.checkId = setInterval(scroll.ios.detectURLBarTouchEvent, 100);                        
+                    } else { 
+                        scroll.ios.displayLayoutInStandardMode();
+                    }
+
+                    // Initialize events listeners
+                    if (scroll.ios.isFullScreenModeCompatibleOnThisDevice()) {
+                        document.addEventListener('touchstart', scroll.ios.displayLayoutInFullScreenMode, false);
+                        document.addEventListener('orientationchange', scroll.ios.displayLayoutInFullScreenMode, false);
+                    } else {
+                        document.addEventListener('orientationchange', scroll.ios.refreshScroll, false);
+                    }
+                    document.addEventListener('touchmove', scroll.ios.disableTouchEvent, false);
+
+                },
+
+                /*
+                 * Called when document is unloaded.
+                 * Clear JavaScript context.
+                 */
+                destroy: function(){
+                    
+                    if (!scroll.ios.isScrollPresent()) {
+                        // section with id 'scroller' is not present
+                        // skipping destroy
+                        return;
+                    }
+
+                    // Destroy iScroll object
+                    if (scroll.ios.iscroll) {
+                        scroll.ios.iscroll.destroy();
+                        scroll.ios.iscroll = null;
+                    }
+                    
+                    // Set standard layout mode by default
+                    scroll.ios.setLayoutModeFlagToStandard();
+                    
+                    // Clear address bar display checker
+                    if (scroll.ios.checkId != -1) {
+                        clearInterval(scroll.ios.checkId);
+                    }
+
+                    // Remove all event listeners
+                    if (scroll.ios.isFullScreenModeCompatibleOnThisDevice()) {
+                        document.removeEventListener('touchstart', scroll.ios.displayLayoutInFullScreenMode, false);
+                        document.removeEventListener('orientationchange', scroll.ios.displayLayoutInFullScreenMode, false);
+                    } else {
+                        document.removeEventListener('orientationchange', scroll.ios.refreshScroll, false);
+                    }
+                    document.removeEventListener('touchmove', scroll.ios.disableTouchEvent, false);
+                
+                },
+
+                /*
+                 * Call refresh to iScroll object. 
+                 */
+                refreshScroll: function() {
+                    if (scroll.ios.iscroll) {
+                        scroll.ios.iscroll.refresh();
+                    }
+                },
+
+            },
+        }
+
+        document.addEventListener('bkPageLoaded', scroll.ios.init, false);
+        document.addEventListener('bkPageUnloaded', scroll.ios.destroy, false);
+        document.addEventListener('bkTransitionsCompleted', scroll.ios.refreshScroll, false);
+
+    </script>
+
+    <style type="text/css" media="all" id="#bkhead('bkFixedElementsInlineCSS')">
+
+         #bk-header {
+            position: absolute;
+            top:0;
+            left:0;
+            width:100%;
+            padding:0;
+            z-index:2;  
+        }
+
+        #bk-footer {
+            position: absolute;
+            bottom:0;
+            left:0;
+            width:100%;
+            padding:0;
+            z-index:2;
+        }
+
+        #bk-body {
+            position:absolute; 
+            z-index:1; 
+            left:0;            
+            width:100%;
+            overflow:auto;          
+        }
+
+        #scroller {
+            position:absolute; 
+            z-index:1;
+            width:100%;
+        }
+        		
+    </style>
+
+</html>
